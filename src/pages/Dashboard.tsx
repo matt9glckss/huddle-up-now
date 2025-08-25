@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,6 +41,7 @@ interface Event {
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [groups, setGroups] = useState<Group[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,6 +121,7 @@ const Dashboard = () => {
 
   const handleSignOut = async () => {
     await signOut();
+    navigate('/auth', { replace: true });
     toast({
       title: "Signed out successfully",
       description: "See you next time!"
@@ -152,7 +155,7 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => navigate('/settings')}>
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
               </Button>
@@ -170,19 +173,19 @@ const Dashboard = () => {
           {/* Quick Actions */}
           <div className="lg:col-span-3">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-              <Button className="h-20 bg-gradient-primary hover:opacity-90 shadow-glow flex-col gap-2">
+              <Button className="h-20 bg-gradient-primary hover:opacity-90 shadow-glow flex-col gap-2" onClick={() => navigate('/groups/new')}>
                 <Plus className="w-6 h-6" />
                 Create Group
               </Button>
-              <Button variant="outline" className="h-20 flex-col gap-2">
+              <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => navigate('/events/new')}>
                 <Calendar className="w-6 h-6" />
                 New Event
               </Button>
-              <Button variant="outline" className="h-20 flex-col gap-2">
+              <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => navigate('/messages')}>
                 <MessageCircle className="w-6 h-6" />
                 Messages
               </Button>
-              <Button variant="outline" className="h-20 flex-col gap-2">
+              <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => navigate('/friends')}>
                 <Users className="w-6 h-6" />
                 Find Friends
               </Button>
@@ -207,7 +210,7 @@ const Dashboard = () => {
                     <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-foreground mb-2">No groups yet</h3>
                     <p className="text-muted-foreground mb-4">Create your first group to start planning events with friends</p>
-                    <Button className="bg-gradient-primary hover:opacity-90">
+                    <Button className="bg-gradient-primary hover:opacity-90" onClick={() => navigate('/groups/new')}>
                       <Plus className="w-4 h-4 mr-2" />
                       Create Group
                     </Button>
