@@ -13,6 +13,7 @@ import EventsNew from "./pages/EventsNew";
 import Messages from "./pages/Messages";
 import Friends from "./pages/Friends";
 import Settings from "./pages/Settings";
+import GroupDetail from "./pages/GroupDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,11 @@ const App = () => (
             <Route path="/groups/new" element={
               <ProtectedRoute>
                 <GroupsNew />
+              </ProtectedRoute>
+            } />
+            <Route path="/groups/:id" element={
+              <ProtectedRoute>
+                <GroupDetail />
               </ProtectedRoute>
             } />
             <Route path="/events/new" element={

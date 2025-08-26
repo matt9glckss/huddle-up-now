@@ -232,7 +232,13 @@ const Dashboard = () => {
                             </span>
                           </div>
                         </div>
-                        <Button size="sm" variant="outline">View</Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => navigate(`/groups/${group.id}`)}
+                        >
+                          View
+                        </Button>
                       </div>
                     ))}
                   </div>
