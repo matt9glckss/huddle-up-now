@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, MessageCircle, Users, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { UserAvatar } from '@/components/profile/UserCard';
 
 interface Group {
   id: string;
@@ -18,6 +19,7 @@ interface Group {
     created_at: string;
     profiles: {
       full_name: string;
+      avatar_url?: string;
     };
   };
   unread_count?: number;
@@ -64,7 +66,7 @@ const Messages = () => {
           if (latestMessageData) {
             const { data: profileData } = await supabase
               .from('profiles')
-              .select('full_name')
+              .select('full_name, avatar_url')
               .eq('user_id', latestMessageData.user_id)
               .single();
 
@@ -161,9 +163,17 @@ const Messages = () => {
                       onClick={() => navigate(`/groups/${group.id}`)}
                       className="flex items-center gap-4 p-4 rounded-lg border bg-background/30 hover:bg-background/50 cursor-pointer transition-colors"
                     >
-                      <div className="w-12 h-12 bg-gradient-primary rounded-full flex items-center justify-center text-white font-medium">
-                        {group.name.charAt(0).toUpperCase()}
-                      </div>
+                      {group.latest_message?.profiles ? (
+                        <UserAvatar 
+                          full_name={group.latest_message.profiles.full_name}
+                          avatar_url={group.latest_message.profiles.avatar_url}
+                          size="lg"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center text-white font-medium">
+                          {group.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">

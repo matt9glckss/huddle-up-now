@@ -13,6 +13,7 @@ import EventsNew from "./pages/EventsNew";
 import Messages from "./pages/Messages";
 import Friends from "./pages/Friends";
 import Settings from "./pages/Settings";
+import Profile from "./pages/Profile";
 import GroupDetail from "./pages/GroupDetail";
 import NotFound from "./pages/NotFound";
 
@@ -61,6 +62,11 @@ const App = () => (
             <Route path="/settings" element={
               <ProtectedRoute>
                 <Settings />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile/:userId?" element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

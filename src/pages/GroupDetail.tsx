@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, MessageCircle, Calendar, Users, Send, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { UserAvatar } from '@/components/profile/UserCard';
 
 interface Group {
   id: string;
@@ -267,9 +268,11 @@ const GroupDetail = () => {
                   ) : (
                     messages.map((message) => (
                       <div key={message.id} className="flex gap-3">
-                        <div className="w-8 h-8 bg-gradient-primary rounded-full flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
-                          {message.profiles?.full_name?.charAt(0) || 'U'}
-                        </div>
+                        <UserAvatar 
+                          full_name={message.profiles?.full_name || 'Unknown User'}
+                          avatar_url={message.profiles?.avatar_url}
+                          size="sm"
+                        />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-medium text-sm">{message.profiles?.full_name}</span>
