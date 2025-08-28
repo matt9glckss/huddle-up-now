@@ -3,10 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Users, 
@@ -15,10 +12,11 @@ import {
   MessageCircle, 
   MapPin, 
   Clock,
-  LogOut,
-  Settings
+  MoreHorizontal,
+  ChevronRight,
+  UserPlus
 } from 'lucide-react';
-import { format, isToday, isTomorrow, parseISO } from 'date-fns';
+import { format, isToday, isTomorrow, parseISO, formatDistanceToNow } from 'date-fns';
 
 interface Group {
   id: string;
@@ -26,10 +24,23 @@ interface Group {
   description: string;
   created_at: string;
   member_count?: number;
+  // Placeholder for future implementation
+  unread_messages?: number;
+}
+
+interface Message {
+  id: string;
+  content: string;
+  created_at: string;
+  group_id: string;
+  group_name: string;
+  user_id: string;
+  sender_name: string;
+  sender_avatar_url?: string;
 }
 
 interface Event {
-  id: string;
+  id:string;
   title: string;
   description: string;
   event_date: string;
@@ -40,10 +51,12 @@ interface Event {
 }
 
 const Dashboard = () => {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [groups, setGroups] = useState<Group[]>([]);
+  const [todaysEvents, setTodaysEvents] = useState<Event[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [recentMessages, setRecentMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -66,10 +79,12 @@ const Dashboard = () => {
 
       if (groupsError) throw groupsError;
 
-      // Process groups data to include member count
+      // Process groups data to include member count and placeholder unread messages
       const processedGroups = groupsData?.map(group => ({
         ...group,
-        member_count: group.group_members?.[0]?.count || 0
+        member_count: group.group_members?.[0]?.count || 0,
+        // Placeholder data for unread messages badge
+        unread_messages: Math.floor(Math.random() * 5) // Random number between 0 and 4
       })) || [];
 
       setGroups(processedGroups);
@@ -84,7 +99,7 @@ const Dashboard = () => {
         `)
         .gte('event_date', new Date().toISOString())
         .order('event_date', { ascending: true })
-        .limit(5);
+        .limit(10);
 
       if (eventsError) throw eventsError;
 
@@ -96,7 +111,23 @@ const Dashboard = () => {
         user_rsvp: event.rsvps?.find((rsvp: any) => rsvp.user_id === user?.id)?.status
       })) || [];
 
-      setUpcomingEvents(processedEvents);
+      // Separate today's events from other upcoming events
+      const todays = processedEvents.filter(e => isToday(parseISO(e.event_date)));
+      const upcoming = processedEvents.filter(e => !isToday(parseISO(e.event_date)));
+
+      setTodaysEvents(todays);
+      setUpcomingEvents(upcoming);
+
+      // Fetch recent messages by calling the RPC function
+      const { data: messagesData, error: messagesError } = await supabase.rpc(
+        'get_recent_group_activity',
+        { user_id_param: user.id }
+      );
+
+      if (messagesError) throw messagesError;
+
+      setRecentMessages(messagesData || []);
+
     } catch (error: any) {
       toast({
         title: "Error loading dashboard",
@@ -115,196 +146,166 @@ const Dashboard = () => {
     } else if (isTomorrow(date)) {
       return `Tomorrow at ${format(date, 'h:mm a')}`;
     } else {
-      return format(date, 'MMM d, yyyy \'at\' h:mm a');
+      return format(date, 'E, MMM d, yyyy \'at\' h:mm a');
     }
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/auth', { replace: true });
-    toast({
-      title: "Signed out successfully",
-      description: "See you next time!"
-    });
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading your dashboard...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="bg-white shadow-card border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <div className="inline-flex items-center justify-center w-10 h-10 bg-gradient-primary rounded-xl">
-                <Users className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-foreground">Huddle Up</h1>
-                <p className="text-sm text-muted-foreground">Welcome back, {user?.user_metadata?.full_name || 'Friend'}!</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm" onClick={() => navigate('/settings')}>
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
+      <div className="sticky top-0 z-10 backdrop-blur-md bg-background/80 border-b border-border/50 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Home</h1>
+          <div className="flex items-center gap-2">
+            <Button size="sm" className="rounded-full" onClick={() => navigate('/events')}>
+              <Plus className="h-4 w-4 mr-1" />
+              Create Event
+            </Button>
+            <Button size="sm" variant="outline" className="rounded-full">
+              <UserPlus className="h-4 w-4 mr-1" />
+              Invite Friends
+            </Button>
           </div>
         </div>
-      </header>
+      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Quick Actions */}
-          <div className="lg:col-span-3">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-              <Button className="h-20 bg-gradient-primary hover:opacity-90 shadow-glow flex-col gap-2" onClick={() => navigate('/groups/new')}>
-                <Plus className="w-6 h-6" />
-                Create Group
-              </Button>
-              <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => navigate('/events/new')}>
-                <Calendar className="w-6 h-6" />
-                New Event
-              </Button>
-              <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => navigate('/messages')}>
-                <MessageCircle className="w-6 h-6" />
-                Messages
-              </Button>
-              <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => navigate('/friends')}>
-                <Users className="w-6 h-6" />
-                Find Friends
-              </Button>
+      {/* Content */}
+      <div className="p-6 space-y-8">
+        {/* Greeting */}
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Hi {user?.user_metadata?.full_name?.split(' ')[0] || 'there'} 👋</h2>
+          <p className="text-muted-foreground">Here’s what’s coming up for you.</p>
+        </div>
+
+        {/* Today's Events */}
+        {todaysEvents.length > 0 && (
+          <div>
+            <h3 className="text-xl font-bold mb-4">Today's Events</h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              {todaysEvents.map(event => (
+                <div key={event.id} className="bg-card border border-border/50 rounded-lg p-4 flex items-start gap-4 hover-bg cursor-pointer" onClick={() => navigate(`/events`)}>
+                  <div className="bg-primary/10 text-primary h-12 w-12 flex-shrink-0 rounded-lg flex items-center justify-center">
+                    <Calendar className="h-6 w-6" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-lg">{event.title}</p>
+                    <p className="text-sm text-muted-foreground">{event.group_name}</p>
+                    <div className="flex items-center gap-2 text-sm text-primary font-semibold mt-1">
+                      <Clock className="h-4 w-4" />
+                      <span>{format(parseISO(event.event_date), 'h:mm a')}</span>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground self-center" />
+                </div>
+              ))}
             </div>
           </div>
+        )}
 
-          {/* My Groups */}
-          <div className="lg:col-span-2">
-            <Card className="bg-gradient-card border-0 shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  My Groups
-                </CardTitle>
-                <CardDescription>
-                  Groups you're part of
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {groups.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-foreground mb-2">No groups yet</h3>
-                    <p className="text-muted-foreground mb-4">Create your first group to start planning events with friends</p>
-                    <Button className="bg-gradient-primary hover:opacity-90" onClick={() => navigate('/groups/new')}>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Group
-                    </Button>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* Upcoming Events Column */}
+          <div className="lg:col-span-3 space-y-4">
+            <h3 className="text-xl font-bold">Upcoming Events</h3>
+            {upcomingEvents.length > 0 ? (
+              upcomingEvents.map(event => (
+                <div key={event.id} className="bg-card border border-border/50 rounded-lg p-4 flex items-center gap-4 hover-bg cursor-pointer" onClick={() => navigate(`/events`)}>
+                  <div className="flex-shrink-0 text-center w-16">
+                    <p className="font-bold text-lg">{format(parseISO(event.event_date), 'd')}</p>
+                    <p className="text-sm text-muted-foreground uppercase">{format(parseISO(event.event_date), 'MMM')}</p>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    {groups.map((group) => (
-                      <div key={group.id} className="flex items-center justify-between p-4 rounded-lg border bg-white/50">
-                        <div>
-                          <h3 className="font-medium text-foreground">{group.name}</h3>
-                          <p className="text-sm text-muted-foreground">{group.description}</p>
-                          <div className="flex items-center gap-4 mt-2">
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Users className="w-3 h-3" />
-                              {group.member_count} members
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              Created {format(parseISO(group.created_at), 'MMM d, yyyy')}
-                            </span>
-                          </div>
-                        </div>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => navigate(`/groups/${group.id}`)}
-                        >
-                          View
-                        </Button>
-                      </div>
-                    ))}
+                  <div className="flex-1">
+                    <p className="font-semibold">{event.title}</p>
+                    <p className="text-sm text-muted-foreground">{event.group_name}</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                      <Clock className="h-3 w-3" />
+                      <span>{format(parseISO(event.event_date), 'h:mm a')}</span>
+                      {event.location && <span className='mx-1'>•</span>}
+                      {event.location && <MapPin className="h-3 w-3" />}
+                      {event.location && <span>{event.location}</span>}
+                    </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-10 bg-card border border-border/50 rounded-lg">
+                <Calendar className="mx-auto h-12 w-12 text-muted-foreground" />
+                <h4 className="mt-4 text-lg font-semibold">No upcoming events</h4>
+                <p className="mt-1 text-sm text-muted-foreground">Check back later or create a new event.</p>
+              </div>
+            )}
           </div>
 
-          {/* Upcoming Events */}
-          <div>
-            <Card className="bg-gradient-card border-0 shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  Upcoming Events
-                </CardTitle>
-                <CardDescription>
-                  Events you're invited to
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {upcomingEvents.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-foreground mb-2">No events yet</h3>
-                    <p className="text-muted-foreground mb-4">Create or join a group to start planning events</p>
+          {/* Active Groups Column */}
+          <div className="lg:col-span-2 space-y-4">
+            <h3 className="text-xl font-bold">Active Groups</h3>
+            {groups.length > 0 ? (
+              groups.slice(0, 5).map(group => (
+                <div key={group.id} className="bg-card border border-border/50 rounded-lg p-4 flex items-center gap-4 hover-bg cursor-pointer" onClick={() => navigate(`/groups/${group.id}`)}>
+                  <div className="bg-primary/10 text-primary h-10 w-10 flex-shrink-0 rounded-lg flex items-center justify-center">
+                    <Users className="h-5 w-5" />
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    {upcomingEvents.map((event) => (
-                      <div key={event.id} className="p-4 rounded-lg border bg-white/50">
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-medium text-foreground">{event.title}</h3>
-                          {event.user_rsvp && (
-                            <Badge variant={
-                              event.user_rsvp === 'yes' ? 'default' : 
-                              event.user_rsvp === 'maybe' ? 'secondary' : 'outline'
-                            }>
-                              {event.user_rsvp}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-2">{event.group_name}</p>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {formatEventDate(event.event_date)}
-                          </span>
-                          {event.location && (
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
-                              {event.location}
-                            </span>
-                          )}
-                        </div>
-                        {event.rsvp_count > 0 && (
-                          <p className="text-xs text-muted-foreground mt-2">
-                            {event.rsvp_count} people responded
-                          </p>
-                        )}
+                  <div className="flex-1">
+                    <p className="font-semibold">{group.name}</p>
+                    <p className="text-sm text-muted-foreground">{group.member_count} members</p>
+                  </div>
+                  {group.unread_messages && group.unread_messages > 0 && (
+                    <div className="bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                      {group.unread_messages}
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-10 bg-card border border-border/50 rounded-lg">
+                <Users className="mx-auto h-12 w-12 text-muted-foreground" />
+                <h4 className="mt-4 text-lg font-semibold">No groups yet</h4>
+                <p className="mt-1 text-sm text-muted-foreground">Create a group to get started.</p>
+                <Button size="sm" className="mt-4 rounded-full" onClick={() => navigate('/groups')}>Create Group</Button>
+              </div>
+            )}
+          </div>
+
+          {/* Recent Messages Column */}
+          <div className="lg:col-span-5 space-y-4">
+            <h3 className="text-xl font-bold">Recent Messages</h3>
+            {recentMessages.length > 0 ? (
+              recentMessages.map(message => (
+                <div key={message.id} className="bg-card border border-border/50 rounded-lg p-4 flex items-start gap-4 hover-bg cursor-pointer" onClick={() => navigate(`/groups/${message.group_id}`)}>
+                  <Avatar className="h-10 w-10 flex-shrink-0">
+                    <AvatarImage src={message.sender_avatar_url} alt={message.sender_name} />
+                    <AvatarFallback>{message.sender_name?.[0] || 'U'}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold">{message.sender_name}</p>
+                        <p className="text-sm text-muted-foreground">in <span className="font-medium text-foreground">{message.group_name}</span></p>
                       </div>
-                    ))}
+                      <p className="text-xs text-muted-foreground">{formatDistanceToNow(parseISO(message.created_at), { addSuffix: true })}</p>
+                    </div>
+                    <p className="mt-2 text-foreground/80">{message.content}</p>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-10 bg-card border border-border/50 rounded-lg">
+                <MessageCircle className="mx-auto h-12 w-12 text-muted-foreground" />
+                <h4 className="mt-4 text-lg font-semibold">No recent messages</h4>
+                <p className="mt-1 text-sm text-muted-foreground">Messages from your groups will appear here.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
