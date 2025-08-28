@@ -73,12 +73,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
-      }, {
-        auth: {
-          autoRefreshToken: true,
-          detectSessionInUrl: true,
-          persistSession: rememberMe,
-        },
       });
       return { error };
     } catch (error) {

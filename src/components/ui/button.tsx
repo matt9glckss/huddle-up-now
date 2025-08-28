@@ -18,8 +18,9 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 active:scale-[0.98] active:shadow-inner",
         ghost: "hover:bg-accent/50 hover:text-accent-foreground active:scale-[0.98]",
         link: "text-primary underline-offset-4 hover:underline active:scale-[0.98]",
-        gradient: "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-sm hover:from-primary/90 hover:to-primary/70 active:scale-[0.98] active:shadow-inner",
-        glass: "bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 active:scale-[0.98] transition-all duration-200"
+        gradient: "bg-gradient-primary text-primary-foreground shadow-lg hover:shadow-glow active:scale-[0.98] transition-all duration-300",
+        glass: "bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 active:scale-[0.98] transition-all duration-200",
+        modern: "bg-card/80 backdrop-blur-sm border border-border/50 text-foreground hover:bg-card hover:border-primary/30 hover:shadow-md active:scale-[0.98] transition-all duration-300"
       },
       size: {
         default: "h-10 px-4 py-2 text-sm",
@@ -37,7 +38,7 @@ const buttonVariants = cva(
     },
     compoundVariants: [
       {
-        variant: ["default", "destructive", "secondary", "gradient", "glass"],
+        variant: ["default", "destructive", "secondary", "gradient", "glass", "modern"],
         className: "shadow-sm"
       },
       {

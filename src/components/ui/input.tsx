@@ -127,7 +127,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             </div>
           )}
           
-          <motion.input
+          <input
             type={type}
             id={inputId}
             ref={ref}
@@ -154,28 +154,24 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         </div>
         
         {error && (
-          <motion.p 
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
+          <p 
             className={cn(
-              'mt-1.5 text-xs text-destructive',
+              'mt-1.5 text-xs text-destructive animate-slide-up',
               errorClassName
             )}
           >
             {error}
-          </motion.p>
+          </p>
         )}
         
         {/* Animated underline for underline variant */}
         {variant === 'underline' && (
-          <motion.div 
-            className="absolute bottom-0 left-0 h-0.5 bg-primary origin-left"
-            initial={{ scaleX: 0 }}
-            animate={{ 
-              scaleX: isFocused ? 1 : 0,
-              backgroundColor: error ? 'hsl(0, 84.2%, 60.2%)' : 'hsl(221.2, 83.2%, 53.3%)'
-            }}
-            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+          <div 
+            className={cn(
+              'absolute bottom-0 left-0 h-0.5 bg-primary origin-left transition-all duration-300',
+              isFocused ? 'scale-x-100' : 'scale-x-0',
+              error && 'bg-destructive'
+            )}
           />
         )}
       </div>

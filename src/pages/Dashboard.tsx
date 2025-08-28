@@ -118,15 +118,8 @@ const Dashboard = () => {
       setTodaysEvents(todays);
       setUpcomingEvents(upcoming);
 
-      // Fetch recent messages by calling the RPC function
-      const { data: messagesData, error: messagesError } = await supabase.rpc(
-        'get_recent_group_activity',
-        { user_id_param: user.id }
-      );
-
-      if (messagesError) throw messagesError;
-
-      setRecentMessages(messagesData || []);
+      // Temporarily set empty array - we'll implement proper messaging later
+      setRecentMessages([]);
 
     } catch (error: any) {
       toast({
